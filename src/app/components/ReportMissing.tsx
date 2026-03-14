@@ -1,15 +1,59 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link, useNavigate } from "react-router";
 import { Upload, MapPin, AlertCircle, ArrowLeft } from "lucide-react";
+import { useAlerts } from "../context/AlertContext.js";
+import { LocationPickerMap } from "./LocationPickerMap.js";
 
 export function ReportMissing() {
   const navigate = useNavigate();
+  const { addAlert } = useAlerts();
   const [radius, setRadius] = useState(5);
   const [uploading, setUploading] = useState(false);
+  
+  // Default coordinate set to Kochi
+  const [coordinates, setCoordinates] = useState<[number, number]>([9.9796, 76.2796]);
+  
+  const [formData, setFormData] = useState({
+    name: "",
+    age: "",
+    location: "",
+    date: "",
+    time: "",
+    physicalDesc: "",
+    clothingDesc: "",
+    contact: ""
+  });
+  
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setImagePreview(url);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setUploading(true);
+    
+    addAlert({
+      name: formData.name.toUpperCase(),
+      age: parseInt(formData.age) || 0,
+      location: formData.location,
+      time: `Today ${formData.time}`,
+      image: imagePreview || "https://images.unsplash.com/photo-1741805190461-eeda3ba59bc3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtaXNzaW5nJTIwY2hpbGQlMjBwb3J0cmFpdCUyMHBob3RvfGVufDF8fHx8MTc3MzQ1ODY2Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      description: `${formData.physicalDesc}. Wearing: ${formData.clothingDesc}`,
+      coordinates: coordinates,
+      sightings: []
+    });
+
     setTimeout(() => {
       navigate("/broadcast/demo");
     }, 1500);
@@ -47,10 +91,26 @@ export function ReportMissing() {
           {/* Photo Upload */}
           <div>
             <label className="block text-xs uppercase tracking-wide mb-4">Upload Photo *</label>
-            <div className="border-2 border-dashed border-[#3F3F46] p-20 text-center hover:border-[#DFE104] transition-colors cursor-pointer">
-              <Upload className="w-16 h-16 text-muted-foreground mx-auto mb-6" />
-              <div className="text-xl mb-2 normal-case">Click to upload</div>
-              <div className="text-sm text-muted-foreground normal-case">PNG, JPG up to 10MB</div>
+            <div 
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed border-[#3F3F46] p-20 text-center hover:border-[#DFE104] transition-colors cursor-pointer relative overflow-hidden flex flex-col items-center justify-center min-h-[300px]"
+            >
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/*"
+                onChange={handleImageUpload}
+              />
+              {imagePreview ? (
+                <img src={imagePreview} alt="Preview" className="absolute inset-0 w-full h-full object-cover opacity-80" />
+              ) : (
+                <>
+                  <Upload className="w-16 h-16 text-muted-foreground mx-auto mb-6" />
+                  <div className="text-xl mb-2 normal-case">Click to upload</div>
+                  <div className="text-sm text-muted-foreground normal-case">PNG, JPG up to 10MB</div>
+                </>
+              )}
             </div>
           </div>
 
@@ -60,6 +120,9 @@ export function ReportMissing() {
               <label className="block text-xs uppercase tracking-wide mb-4">Full Name *</label>
               <input 
                 type="text" 
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
                 required
                 className="w-full bg-transparent border-b-2 border-[#3F3F46] px-0 py-4 text-2xl focus:border-[#DFE104] outline-none transition-colors placeholder:text-muted"
                 placeholder="ENTER NAME"
@@ -69,6 +132,9 @@ export function ReportMissing() {
               <label className="block text-xs uppercase tracking-wide mb-4">Age *</label>
               <input 
                 type="number" 
+                name="age"
+                value={formData.age}
+                onChange={handleChange}
                 required
                 className="w-full bg-transparent border-b-2 border-[#3F3F46] px-0 py-4 text-2xl focus:border-[#DFE104] outline-none transition-colors placeholder:text-muted"
                 placeholder="AGE"
@@ -82,6 +148,9 @@ export function ReportMissing() {
             <div className="relative">
               <input 
                 type="text" 
+                name="location"
+                value={formData.location}
+                onChange={handleChange}
                 required
                 className="w-full bg-transparent border-b-2 border-[#3F3F46] px-0 py-4 text-2xl focus:border-[#DFE104] outline-none transition-colors placeholder:text-muted"
                 placeholder="ENTER LOCATION"
@@ -93,18 +162,16 @@ export function ReportMissing() {
           {/* Map Selector */}
           <div>
             <label className="block text-xs uppercase tracking-wide mb-4">Mark Location on Map *</label>
-            <div className="relative aspect-video bg-muted flex items-center justify-center cursor-pointer border-2 border-[#3F3F46] hover:border-[#DFE104] transition-colors">
-              <div className="text-[10rem] font-bold text-muted-foreground/10 absolute">MAP</div>
-              <div className="relative z-10">
-                <div 
-                  className="border-2 border-destructive opacity-50"
-                  style={{ width: `${radius * 40}px`, height: `${radius * 40}px` }}
-                ></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <MapPin className="w-8 h-8 text-destructive" />
-                </div>
-              </div>
+            <div className="relative aspect-video bg-muted flex items-center justify-center border-2 border-[#3F3F46] hover:border-[#DFE104] transition-colors overflow-hidden">
+              <LocationPickerMap 
+                initialCenter={coordinates} 
+                radiusKm={radius} 
+                onChange={(newCoords: [number, number]) => setCoordinates(newCoords)} 
+              />
             </div>
+            <p className="text-xs text-muted-foreground mt-2 uppercase tracking-wide">
+              Click or drag the pin to set the exact coordinates ({coordinates[0].toFixed(4)}, {coordinates[1].toFixed(4)})
+            </p>
           </div>
 
           {/* Radius Selector */}
@@ -135,16 +202,24 @@ export function ReportMissing() {
               <label className="block text-xs uppercase tracking-wide mb-4">Date Last Seen *</label>
               <input 
                 type="date" 
+                name="date"
+                value={formData.date}
+                onChange={handleChange}
                 required
                 className="w-full bg-transparent border-b-2 border-[#3F3F46] px-0 py-4 text-xl focus:border-[#DFE104] outline-none transition-colors"
+                style={{ colorScheme: "dark" }}
               />
             </div>
             <div>
               <label className="block text-xs uppercase tracking-wide mb-4">Time Last Seen *</label>
               <input 
                 type="time" 
+                name="time"
+                value={formData.time}
+                onChange={handleChange}
                 required
                 className="w-full bg-transparent border-b-2 border-[#3F3F46] px-0 py-4 text-xl focus:border-[#DFE104] outline-none transition-colors"
+                style={{ colorScheme: "dark" }}
               />
             </div>
           </div>
@@ -153,6 +228,9 @@ export function ReportMissing() {
           <div>
             <label className="block text-xs uppercase tracking-wide mb-4">Physical Description *</label>
             <textarea 
+              name="physicalDesc"
+              value={formData.physicalDesc}
+              onChange={handleChange}
               required
               rows={3}
               className="w-full bg-transparent border-2 border-[#3F3F46] px-4 py-4 text-lg focus:border-[#DFE104] outline-none transition-colors placeholder:text-muted normal-case"
@@ -164,6 +242,9 @@ export function ReportMissing() {
           <div>
             <label className="block text-xs uppercase tracking-wide mb-4">Clothing Description *</label>
             <textarea 
+              name="clothingDesc"
+              value={formData.clothingDesc}
+              onChange={handleChange}
               required
               rows={2}
               className="w-full bg-transparent border-2 border-[#3F3F46] px-4 py-4 text-lg focus:border-[#DFE104] outline-none transition-colors placeholder:text-muted normal-case"
@@ -176,6 +257,9 @@ export function ReportMissing() {
             <label className="block text-xs uppercase tracking-wide mb-4">Contact Number *</label>
             <input 
               type="tel" 
+              name="contact"
+              value={formData.contact}
+              onChange={handleChange}
               required
               className="w-full bg-transparent border-b-2 border-[#3F3F46] px-0 py-4 text-2xl focus:border-[#DFE104] outline-none transition-colors placeholder:text-muted"
               placeholder="+91 XXXXX XXXXX"

@@ -2,11 +2,17 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Radio, CheckCircle } from "lucide-react";
 import { motion } from "motion/react";
+import { useAlerts } from "../context/AlertContext.js";
+import { MapComponent } from "./MapComponent.js";
 
 export function BroadcastAnimation() {
   const navigate = useNavigate();
+  const { alerts } = useAlerts();
   const [count, setCount] = useState(0);
   const [complete, setComplete] = useState(false);
+
+  // Grab the very last alert pushed to global state
+  const latestAlert = alerts[alerts.length - 1] || alerts[0];
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -79,8 +85,16 @@ export function BroadcastAnimation() {
           className="border-2 border-[#3F3F46] bg-background p-12"
         >
           <div className="relative aspect-video bg-muted flex items-center justify-center overflow-hidden">
-            {/* Background */}
-            <div className="text-[12rem] font-bold text-muted-foreground/10 absolute">MAP</div>
+            {/* Background Map */}
+            <div className="absolute inset-0 z-0">
+              <MapComponent
+                center={(latestAlert?.coordinates as [number, number]) || [9.9796, 76.2796]}
+                name={latestAlert?.name || "Loading..."}
+                age={latestAlert?.age || 0}
+                location={latestAlert?.location || ""}
+                alertId={Number(latestAlert?.id) || 1}
+              />
+            </div>
             
             {/* Center Point */}
             <div className="absolute inset-0 flex items-center justify-center">

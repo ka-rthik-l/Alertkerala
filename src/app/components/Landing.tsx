@@ -54,6 +54,13 @@ export function Landing() {
                 <Users className="w-5 h-5" />
                 JOIN NETWORK
               </Link>
+              <Link 
+                to="/dashboard" 
+                className="border-2 border-[#3F3F46] bg-transparent text-foreground px-8 py-4 h-14 flex items-center gap-3 hover:bg-foreground hover:text-background transition-all duration-300"
+              >
+                <Zap className="w-5 h-5" />
+                DASHBOARD
+              </Link>
             </div>
           </motion.div>
         </div>

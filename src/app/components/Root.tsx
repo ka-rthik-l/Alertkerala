@@ -1,5 +1,10 @@
 import { Outlet } from "react-router";
+import { AlertProvider } from "../context/AlertContext";
 
 export function Root() {
-  return <Outlet />;
+  return (
+    <AlertProvider>
+      <Outlet />
+    </AlertProvider>
+  );
 }
